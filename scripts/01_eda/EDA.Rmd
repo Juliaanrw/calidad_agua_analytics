@@ -1,0 +1,94 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# Cargar librerías necesarias
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+
+# Leer el archivo CSV
+agua <- read.csv("dataset_calidad_agua_500.csv")
+
+# Ver primeras filas
+head(agua)
+
+# Distribución de la variable objetivo
+table(agua$Calidad_Agua)
+prop.table(table(agua$Calidad_Agua))
+
+
+```
+pH: Esta columna Indica el agua esta ligeramente ácida o neutra.
+
+Turbidez (NTU): Muy variable, los valores altos (más de 40 NTU) sugieren presencia de sólidos suspendidos y contaminación.
+
+Oxígeno disuelto (mg/L): Valores bajos (<5 mg/L) suelen ser críticos para la vida acuática.
+
+Nitratos (mg/L): Los valores altos (>10 mg/L) sugieren contaminación por fertilizantes o aguas residuales.
+
+Fosfatos (mg/L): Valores elevados (>1 mg/L) pueden favorecer la eutrofización.
+
+Temperatura (°C): Afecta la solubilidad del oxígeno y el metabolismo de organismos.
+
+Calidad_Agua: Clasificación binaria: Aceptable o No Aceptable.
+
+```{r}
+
+ggplot(agua, aes(x = Calidad_Agua, fill = Calidad_Agua)) +
+  geom_bar() +
+  labs(title = "Distribución de la Calidad del Agua",
+       x = "Categoría", y = "Frecuencia") +
+  theme_minimal()
+
+```
+La barra roja (Aceptable) muestra alrededor de 92 registros.
+
+La barra cyan (No Aceptable) muestra alrededor de 408 registros.
+
+La diferencia es clara: la mayoría de los puntos de muestreo se clasifican como No Aceptable.
+
+```{r}
+
+# Seleccionar solo variables numéricas
+num_vars <- agua %>% select(pH, Turbidez_NTU, Oxigeno_Disuelto_mgL,
+                            Nitratos_mgL, Fosfatos_mgL, Temperatura_C)
+
+# Calcular matriz de correlación
+cor_matrix <- cor(num_vars)
+
+# Visualizar con corrplot
+corrplot(cor_matrix, method = "color", type = "upper",
+         tl.col = "black", tl.srt = 45)
+
+
+```
+Observaciones clave
+pH:
+
+No muestra correlaciones fuertes con las demás variables. Esto es común, ya que el pH depende de múltiples factores químicos.
+
+Turbidez (NTU):
+
+Tiende a correlacionarse positivamente con nitratos y fosfatos. Esto sugiere que cuando hay más partículas suspendidas, también hay más nutrientes asociados a contaminación agrícola o aguas residuales.
+
+Oxígeno disuelto (mg/L):
+
+Presenta correlación negativa con la temperatura. Esto es lógico: a mayor temperatura, menor solubilidad del oxígeno en el agua.
+
+También puede mostrar correlación negativa con turbidez y nutrientes, ya que la contaminación orgánica reduce el oxígeno disponible.
+
+Nitratos y fosfatos:
+
+Suelen correlacionarse positivamente entre sí. Ambos provienen de fuentes similares (fertilizantes, aguas residuales).
+
+Relación positiva con turbidez, indicando que la contaminación por nutrientes suele ir acompañada de sólidos suspendidos.
+
+Temperatura (°C):
+
+Correlación negativa con oxígeno disuelto, como mencionamos.
+
+Puede tener correlaciones débiles con otras variables, pero su efecto principal es físico-químico sobre el oxígeno.
+
