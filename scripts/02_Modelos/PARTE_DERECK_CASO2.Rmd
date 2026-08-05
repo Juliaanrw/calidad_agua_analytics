@@ -148,12 +148,6 @@ apply(
 )
 ```
 
-## Resultado de la normalización
-
-El conjunto de datos contiene 500 observaciones y seis variables predictoras numéricas. No se identificaron valores faltantes. Sin embargo, las variables estaban expresadas en diferentes unidades y escalas, por lo que fue necesario aplicar una estandarización mediante los métodos `center` y `scale`.
-
-Primero se realizó una división del 70% para entrenamiento y 30% para prueba. El preprocesador fue calculado únicamente con el conjunto de entrenamiento y posteriormente se aplicó la misma transformación al conjunto de prueba. Después del procedimiento, las variables numéricas del conjunto de entrenamiento presentan medias cercanas a cero y desviaciones estándar cercanas a uno.
-
 ## Control de entrenamiento
 
 ```{r}
