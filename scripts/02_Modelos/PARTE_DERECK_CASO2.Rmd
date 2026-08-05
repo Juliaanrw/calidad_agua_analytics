@@ -13,6 +13,7 @@ library(pROC)
 library(ggplot2)
 library(dplyr)
 library(corrplot)
+library(caret) 
 ```
 
 ## Carga de los datos
@@ -461,6 +462,143 @@ Nitratos_mgL → también muy influyente (≈ 83, ≈ 38).
 Oxígeno disuelto (mg/L) → relevante (≈ 42, ≈ 15).
 
 pH, fosfatos y temperatura → baja o casi nula importancia en este modelo.
+
+
+
+```{r}
+vars_predictoras <- c("pH", "Turbidez_NTU", "Oxigeno_Disuelto_mgL", "Nitratos_mgL", "Fosfatos_mgL", "Temperatura_C")
+target <- "Calidad_Agua"
+
+if(any(agua[[target]] == "Aceptable", na.rm = TRUE)) {
+  agua[[target]] <- ifelse(agua[[target]] == "Aceptable", 1, 0)
+} else {
+  agua[[target]] <- as.numeric(as.character(agua[[target]]))
+}
+agua[[target]] <- as.factor(agua[[target]])
+```
+
+```{r}
+set.seed(123)
+n <- nrow(agua)
+
+indice <- sample(1:n, size = round(0.70*n))
+
+entrenamiento <- agua[indice, ]
+prueba <- agua[-indice, ]
+```
+
+```{r}
+mean_train <- colMeans(entrenamiento[, vars_predictoras])
+sd_train   <- apply(entrenamiento[, vars_predictoras], 2, sd)
+
+entrenamiento_scaled <- entrenamiento
+prueba_scaled        <- prueba
+
+entrenamiento_scaled[, vars_predictoras] <- scale(entrenamiento[, vars_predictoras], center = mean_train, scale = sd_train)
+prueba_scaled[, vars_predictoras]        <- scale(prueba[, vars_predictoras], center = mean_train, scale = sd_train)
+
+
+cols_modelo <- c(vars_predictoras, target)
+datos_train_modelo <- entrenamiento_scaled[, cols_modelo]
+datos_test_modelo  <- prueba_scaled[, cols_modelo]
+y_real <- datos_test_modelo[[target]]
+```
+
+
+
+
+#ENTRENAMIENTO DE LOS MODELOS
+```{r}
+formula_mod <- as.formula(paste(target, "~ ."))
+```
+
+
+#MODELO REGRESIÓN LOGISTICA
+```{r}
+modelo_logit <- glm(formula_mod, data = datos_train_modelo, family = binomial(link = "logit"))
+```
+
+#PREDICCION DEL MODELO
+```{r}
+prob_logit <- predict(modelo_logit, newdata = datos_test_modelo, type = "response")
+pred_logit_class <- as.factor(ifelse(prob_logit >= 0.5, 1, 0))
+```
+
+#MODELO 2 K-VECINOS KNN
+
+```{r}
+modelo_knn <- knn3(formula_mod, data = datos_train_modelo, k = 5)
+```
+
+
+```{r}
+prob_knn <- predict(modelo_knn, newdata = datos_test_modelo)[, 2]
+pred_knn_class <- as.factor(ifelse(prob_knn >= 0.5, 1, 0))
+```
+
+
+
+#CALCULO DE METRICAS
+
+
+```{r}
+cm_logit <- confusionMatrix(data = pred_logit_class, reference = y_real, positive = "1")
+cm_knn   <- confusionMatrix(data = pred_knn_class, reference = y_real, positive = "1")
+```
+
+```{r}
+roc_logit <- roc(as.numeric(as.character(y_real)), prob_logit, quiet = TRUE)
+auc_logit <- auc(roc_logit)
+
+roc_knn <- roc(as.numeric(as.character(y_real)), prob_knn, quiet = TRUE)
+auc_knn <- auc(roc_knn)
+```
+
+
+```{r}
+resultados_mis_modelos <- data.frame( 
+  Modelo = c( 
+    "Regresión Logística", 
+    "KNN" 
+  ), 
+  Accuracy = c( 
+    as.numeric(cm_logit$overall["Accuracy"]), 
+    as.numeric(cm_knn$overall["Accuracy"]) 
+  ), 
+  Kappa = c( 
+    as.numeric(cm_logit$overall["Kappa"]), 
+    as.numeric(cm_knn$overall["Kappa"]) 
+  ), 
+  Balanced_Accuracy = c( 
+    as.numeric(cm_logit$byClass["Balanced Accuracy"]), 
+    as.numeric(cm_knn$byClass["Balanced Accuracy"]) 
+  ), 
+  AUC = c( 
+    as.numeric(auc_logit), 
+    as.numeric(auc_knn) 
+  ) 
+) 
+
+
+print(resultados_mis_modelos)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
