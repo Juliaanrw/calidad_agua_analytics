@@ -35,6 +35,14 @@ Temperatura (°C): Afecta la solubilidad del oxígeno y el metabolismo de organi
 
 Calidad_Agua: Clasificación binaria: Aceptable o No Aceptable.
 
+Distribución de la variable objetivo
+Aceptable: 92 registros
+No Aceptable: 408 registros
+
+En proporciones:
+Aceptable → 18.4%
+No Aceptable → 81.6%
+
 ```{r}
 
 ggplot(agua, aes(x = Calidad_Agua, fill = Calidad_Agua)) +
