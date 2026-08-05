@@ -1,0 +1,132 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+
+# Leer el archivo CSV
+agua <- read.csv("dataset_calidad_agua_500_limpio_normalizado.csv")
+
+```
+
+
+```{r}
+# 1. División en entrenamiento y prueba
+set.seed(123)
+
+n <- nrow(agua)
+
+indice <- sample(
+  1:n,
+  size = round(0.70*n)
+)
+
+entrenamiento <- agua[indice, ]
+prueba <- agua[-indice, ]
+
+cat("\nEntrenamiento:", nrow(entrenamiento), "\n")
+cat("Prueba:", nrow(prueba), "\n")
+
+```
+
+Árbol de decisión
+
+```{r}
+library(rpart)
+library(rpart.plot)
+
+# Entrenar árbol de decisión
+modelo_arbol <- rpart(Calidad_Agua ~ ., data = entrenamiento, method = "class")
+
+# Visualizar árbol
+rpart.plot(modelo_arbol)
+
+# Predicciones
+pred_arbol <- predict(modelo_arbol, prueba, type = "class")
+
+# Matriz de confusión
+table(Real = prueba$Calidad_Agua, Predicho = pred_arbol)
+
+
+```
+Aceptable: El modelo clasificó correctamente los 33 casos reales como Aceptable.
+
+No Aceptable: El modelo clasificó correctamente los 117 casos reales como No Aceptable.
+
+Errores: No hubo errores de clasificación (0 falsos positivos y 0 falsos negativos).
+
+
+Lectura del árbol
+
+Nodo raíz
+La primera división se hace con Turbidez_NTU.
+
+Esto significa que la turbidez es la variable más influyente para separar entre Aceptable y No Aceptable.
+
+Segunda división
+Si la turbidez es baja, el árbol analiza los Nitratos (mg/L).
+Esto indica que la presencia de nutrientes es el segundo factor crítico.
+
+Tercera división
+Dentro de los casos con nitratos bajos, el árbol considera el Oxígeno disuelto (mg/L).
+Esto refleja que el oxígeno es determinante para diferenciar entre aguas aceptables y no aceptables.
+
+
+Variables más influyentes:
+Turbidez → altos valores casi siempre llevan a No Aceptable.
+Nitratos → niveles elevados refuerzan la clasificación No Aceptable.
+Oxígeno disuelto → niveles bajos reducen la probabilidad de que el agua sea Aceptable.
+
+Lógica del árbol:
+Si el agua tiene baja turbidez, bajos nitratos y suficiente oxígeno disuelto, se clasifica como Aceptable.
+En cualquier otro caso, el árbol tiende a clasificar como No Aceptable.
+
+
+Bosque aleatorio
+
+```{r}
+# variable objetivo a factor
+agua$Calidad_Agua <- as.factor(agua$Calidad_Agua)
+entrenamiento$Calidad_Agua <- as.factor(entrenamiento$Calidad_Agua)
+prueba$Calidad_Agua <- as.factor(prueba$Calidad_Agua)
+
+# Entrenar bosque aleatorio
+library(randomForest)
+modelo_rf <- randomForest(Calidad_Agua ~ ., 
+                          data = entrenamiento, 
+                          ntree = 500, 
+                          mtry = 3, 
+                          importance = TRUE)
+
+# Predicciones
+pred_rf <- predict(modelo_rf, prueba)
+
+# Matriz de confusión
+table(Real = prueba$Calidad_Agua, Predicho = pred_rf)
+
+# Importancia de variables
+importance(modelo_rf)
+varImpPlot(modelo_rf)
+
+```
+Aceptable: 31 casos correctamente clasificados, 2 errores.
+No Aceptable: 117 casos correctamente clasificados, 0 errores.
+
+
+Turbidez_NTU → mayor influencia (MeanDecreaseAccuracy ≈ 86, MeanDecreaseGini ≈ 36).
+
+Nitratos_mgL → también muy influyente (≈ 83, ≈ 38).
+
+Oxígeno disuelto (mg/L) → relevante (≈ 42, ≈ 15).
+
+pH, fosfatos y temperatura → baja o casi nula importancia en este modelo.
+
+
+
+
+
+
+
+
+
