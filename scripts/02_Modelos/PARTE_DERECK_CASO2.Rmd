@@ -477,15 +477,7 @@ if(any(agua[[target]] == "Aceptable", na.rm = TRUE)) {
 agua[[target]] <- as.factor(agua[[target]])
 ```
 
-```{r}
-set.seed(123)
-n <- nrow(agua)
 
-indice <- sample(1:n, size = round(0.70*n))
-
-entrenamiento <- agua[indice, ]
-prueba <- agua[-indice, ]
-```
 
 ```{r}
 mean_train <- colMeans(entrenamiento[, vars_predictoras])
