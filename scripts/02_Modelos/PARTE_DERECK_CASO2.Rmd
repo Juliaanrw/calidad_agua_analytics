@@ -1,0 +1,299 @@
+---
+title: "Estudio de caso 2"
+output: html_notebook
+---
+
+## Carga de bibliotecas
+
+```{r}
+library(caret)
+library(e1071)
+library(nnet)
+library(pROC)
+
+```
+
+## Carga de los datos
+
+```{r}
+agua <- read.csv("dataset_calidad_agua_500.csv")
+```
+
+## Revisión inicial de los datos
+
+```{r}
+head(agua)
+
+str(agua)
+
+summary(agua)
+
+colSums(is.na(agua))
+```
+
+## Preparación de la variable objetivo
+
+```{r}
+agua$Calidad_Agua <- factor(
+  ifelse(
+    agua$Calidad_Agua == "Aceptable",
+    "Aceptable",
+    "No_Aceptable"
+  ),
+  levels = c(
+    "No_Aceptable",
+    "Aceptable"
+  )
+)
+
+str(agua)
+
+table(agua$Calidad_Agua)
+
+levels(agua$Calidad_Agua)
+```
+
+## División en entrenamiento y prueba
+
+```{r}
+set.seed(123)
+
+n <- nrow(agua)
+
+indice <- sample(
+  1:n,
+  size = round(0.70 * n)
+)
+
+entrenamiento <- agua[indice, ]
+
+prueba <- agua[-indice, ]
+
+cat("\nEntrenamiento:", nrow(entrenamiento), "\n")
+
+cat("Prueba:", nrow(prueba), "\n")
+```
+
+## Comprobación de la división
+
+```{r}
+dim(entrenamiento)
+
+dim(prueba)
+
+table(entrenamiento$Calidad_Agua)
+
+table(prueba$Calidad_Agua)
+```
+
+## Normalización de las variables predictoras
+
+```{r}
+num_vars <- c(
+  "pH",
+  "Turbidez_NTU",
+  "Oxigeno_Disuelto_mgL",
+  "Nitratos_mgL",
+  "Fosfatos_mgL",
+  "Temperatura_C"
+)
+
+preprocesador <- preProcess(
+  entrenamiento[, num_vars],
+  method = c("center", "scale")
+)
+```
+
+## Normalización del conjunto de entrenamiento
+
+```{r}
+entrenamiento_norm <- entrenamiento
+
+entrenamiento_norm[, num_vars] <- predict(
+  preprocesador,
+  entrenamiento[, num_vars]
+)
+```
+
+## Normalización del conjunto de prueba
+
+```{r}
+prueba_norm <- prueba
+
+prueba_norm[, num_vars] <- predict(
+  preprocesador,
+  prueba[, num_vars]
+)
+```
+
+## Comprobación de la normalización
+
+```{r}
+summary(entrenamiento_norm)
+
+summary(prueba_norm)
+```
+
+```{r}
+colMeans(
+  entrenamiento_norm[, num_vars]
+)
+```
+
+```{r}
+apply(
+  entrenamiento_norm[, num_vars],
+  2,
+  sd
+)
+```
+
+## Resultado de la normalización
+
+El conjunto de datos contiene 500 observaciones y seis variables predictoras numéricas. No se identificaron valores faltantes. Sin embargo, las variables estaban expresadas en diferentes unidades y escalas, por lo que fue necesario aplicar una estandarización mediante los métodos `center` y `scale`.
+
+Primero se realizó una división del 70% para entrenamiento y 30% para prueba. El preprocesador fue calculado únicamente con el conjunto de entrenamiento y posteriormente se aplicó la misma transformación al conjunto de prueba. Después del procedimiento, las variables numéricas del conjunto de entrenamiento presentan medias cercanas a cero y desviaciones estándar cercanas a uno.
+
+## Control de entrenamiento
+
+```{r}
+control <- trainControl(
+  method = "cv",
+  number = 5,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary
+)
+
+fml <- Calidad_Agua ~ .
+```
+
+
+## Control de entrenamiento
+
+```{r}
+control <- trainControl(
+  method = "cv",
+  number = 5,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary
+)
+
+fml <- Calidad_Agua ~ .
+```
+
+# Máquina de Soporte Vectorial (SVM)
+
+## Entrenamiento del modelo SVM
+
+```{r}
+set.seed(123)
+
+model_svm <- train(
+  fml,
+  data = entrenamiento_norm,
+  method = "svmLinear",
+  trControl = control,
+  metric = "ROC"
+)
+
+model_svm
+```
+
+## Predicción y matriz de confusión del SVM
+
+```{r}
+pred_svm <- predict(
+  model_svm,
+  newdata = prueba_norm
+)
+
+cm_svm <- confusionMatrix(
+  pred_svm,
+  prueba_norm$Calidad_Agua
+)
+
+cm_svm
+```
+
+## AUC del modelo SVM
+
+```{r}
+prob_svm <- predict(
+  model_svm,
+  newdata = prueba_norm,
+  type = "prob"
+)[, "No_Aceptable"]
+
+roc_svm <- roc(
+  response = prueba_norm$Calidad_Agua,
+  predictor = prob_svm,
+  levels = c(
+    "Aceptable",
+    "No_Aceptable"
+  )
+)
+
+auc_svm <- auc(roc_svm)
+
+auc_svm
+```
+
+# Red neuronal
+
+## Entrenamiento de la red neuronal
+
+```{r}
+set.seed(123)
+
+model_nnet <- train(
+  fml,
+  data = entrenamiento_norm,
+  method = "nnet",
+  trControl = control,
+  metric = "ROC",
+  trace = FALSE,
+  linout = FALSE
+)
+
+model_nnet
+```
+
+## Predicción y matriz de confusión de la red neuronal
+
+```{r}
+pred_nnet <- predict(
+  model_nnet,
+  newdata = prueba_norm
+)
+
+cm_nnet <- confusionMatrix(
+  pred_nnet,
+  prueba_norm$Calidad_Agua
+)
+
+cm_nnet
+```
+
+## AUC de la red neuronal
+
+```{r}
+prob_nnet <- predict(
+  model_nnet,
+  newdata = prueba_norm,
+  type = "prob"
+)[, "No_Aceptable"]
+
+roc_nnet <- roc(
+  response = prueba_norm$Calidad_Agua,
+  predictor = prob_nnet,
+  levels = c(
+    "Aceptable",
+    "No_Aceptable"
+  )
+)
+
+auc_nnet <- auc(roc_nnet)
+
+auc_nnet
+```
+
