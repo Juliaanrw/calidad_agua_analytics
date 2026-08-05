@@ -622,3 +622,12 @@ resultados_modelos <- data.frame(
 
 resultados_modelos
 
+
+
+¿Qué variables influyen más?
+
+Las variables más influyentes son turbidez, nitratos y oxígeno disuelto. La turbidez fue la más importante, seguida por los nitratos y luego el oxígeno disuelto.
+
+¿Qué recomendaciones se derivan?
+
+Se recomienda monitorear principalmente esos tres parámetros, especialmente en los puntos con turbidez alta, nitratos elevados y oxígeno disuelto bajo. También conviene revisar posibles fuentes de contaminación, como sedimentos, fertilizantes y aguas residuales.
