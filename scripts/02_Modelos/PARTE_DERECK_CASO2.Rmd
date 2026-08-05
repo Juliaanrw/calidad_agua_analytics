@@ -291,3 +291,31 @@ auc_nnet <- auc(roc_nnet)
 auc_nnet
 ```
 
+
+##COMPARACION DE MODELOS 
+
+resultados_modelos <- data.frame(
+  Modelo = c(
+    "SVM",
+    "Red neuronal"
+  ),
+  Accuracy = c(
+    as.numeric(cm_svm$overall["Accuracy"]),
+    as.numeric(cm_nnet$overall["Accuracy"])
+  ),
+  Kappa = c(
+    as.numeric(cm_svm$overall["Kappa"]),
+    as.numeric(cm_nnet$overall["Kappa"])
+  ),
+  Balanced_Accuracy = c(
+    as.numeric(cm_svm$byClass["Balanced Accuracy"]),
+    as.numeric(cm_nnet$byClass["Balanced Accuracy"])
+  ),
+  AUC = c(
+    as.numeric(auc_svm),
+    as.numeric(auc_nnet)
+  )
+)
+
+resultados_modelos
+
